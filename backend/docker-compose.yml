@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: metal_inspection_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-metal_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-metal_pass}
+      POSTGRES_DB: ${DB_NAME:-metal_inspection}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - metal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-metal_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: metal_inspection_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - metal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: metal_inspection_backend
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-metal_user}:${DB_PASSWORD:-metal_pass}@postgres:5432/${DB_NAME:-metal_inspection}
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - certificates:/app/certificates
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - metal_network
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: metal_inspection_frontend
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - metal_network
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+volumes:
+  postgres_data:
+  certificates:
+
+networks:
+  metal_network:
+    driver: bridge
