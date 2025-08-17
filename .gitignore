@@ -49,7 +49,7 @@ metal_inspection.db
 
 # Logs
 *.log
-logs/
+backend/logs/
 log/
 
 # Testing
@@ -75,8 +75,8 @@ frontend/dist-ssr/
 frontend/*.local
 
 # Certificates and uploads
-certificates/
-uploads/
+backend/certificates/
+backend/uploads/
 *.pdf
 *.jpg
 *.jpeg
