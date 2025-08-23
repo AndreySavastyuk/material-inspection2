@@ -94,8 +94,8 @@ npm run dev
 ### 4. Доступ к системе
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
-- **API Документация**: http://localhost:8000/docs
-- **Интерактивная документация**: http://localhost:8000/redoc
+- **API Документация (Swagger UI)**: http://localhost:8000/api/docs
+- **Интерактивная документация (ReDoc)**: http://localhost:8000/api/redoc
 
 ## 🐳 Запуск через Docker
 
@@ -264,8 +264,8 @@ npm run test:e2e
 
 После запуска backend сервера документация доступна по адресам:
 
-- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Swagger UI**: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+- **ReDoc**: [http://localhost:8000/api/redoc](http://localhost:8000/api/redoc)
 - **OpenAPI схема**: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
 
 ### Основные эндпоинты:
@@ -369,5 +369,5 @@ VITE_APP_TITLE="Metal Inspection System"
 ---
 
 **Версия**: 1.0.0  
-**Дата последнего обновления**: 17 августа 2025  
+**Дата последнего обновления**: 23 августа 2025  
 **Совместимость**: Python 3.13+, Node.js 18+
