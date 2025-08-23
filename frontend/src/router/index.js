@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 // Views
 import HomeView from '@/views/HomeView.vue'
 import MaterialsView from '@/views/MaterialsView.vue'
+import MaterialReceivingForm from '@/components/MaterialReceivingForm.vue'
 
 const routes = [
   {
@@ -74,8 +75,13 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue')
-  }
-]
+  },
+    {
+      path: '/materials/new',
+      name: 'material-new',
+      component: MaterialReceivingForm
+    }
+    ]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),

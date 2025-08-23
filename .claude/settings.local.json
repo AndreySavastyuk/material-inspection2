@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(alembic show:*)",
+      "Bash(curl:*)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python:*)"
+    ],
+    "additionalDirectories": [
+      "E:\\e\\Projects\\material-inspection2"
+    ]
+  }
+}

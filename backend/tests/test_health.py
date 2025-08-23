@@ -20,4 +20,3 @@ async def test_materials_list():
     assert resp.status_code == 200
     body = resp.json()
     assert "items" in body and isinstance(body["items"], list)
-
