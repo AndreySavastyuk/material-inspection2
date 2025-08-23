@@ -1,5 +1,5 @@
 """
-Модель пользователей
+Модель пользователей с полем для пароля
 """
 from sqlalchemy import Column, String, DateTime, Boolean, JSON, Enum, Integer
 from sqlalchemy.orm import relationship
@@ -31,6 +31,9 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False, index=True)
 
+    # Поле для хранения хешированного пароля
+    password_hash = Column(String(255), nullable=False)
+
     # Роль и права
     role = Column(Enum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True)
@@ -43,16 +46,6 @@ class User(Base):
 
     # Настройки и предпочтения
     preferences = Column(JSON, default=dict)
-    # Пример структуры preferences:
-    # {
-    #     "language": "ru",
-    #     "theme": "light",
-    #     "notifications": {
-    #         "email": true,
-    #         "push": false
-    #     },
-    #     "dashboard_layout": {...}
-    # }
 
     # Временные метки
     created_at = Column(DateTime(timezone=True), server_default=func.now())

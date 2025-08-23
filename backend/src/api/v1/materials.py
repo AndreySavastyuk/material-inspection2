@@ -2,291 +2,261 @@
 API endpoints для работы с материалами
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
-from datetime import datetime
 from uuid import UUID
 
 from src.core.database import get_db
-from src.models.material import Material, MaterialStatus, MaterialType
+from src.models.material import MaterialStatus, MaterialType
+from src.models.user import User, UserRole
 from src.schemas.material import (
     MaterialCreate,
     MaterialUpdate,
     MaterialResponse,
-    MaterialListResponse
+    MaterialListResponse,
+    MaterialStatusChange
 )
-from src.core.material_flow import workflow_orchestrator
+from src.services.material_service import MaterialService
+from src.core.auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/materials", tags=["materials"])
 
 
 @router.get("/", response_model=MaterialListResponse)
 async def get_materials(
-        db: AsyncSession = Depends(get_db),
-        skip: int = Query(0, ge=0),
-        limit: int = Query(100, ge=1, le=1000),
-        status: Optional[MaterialStatus] = None,
-        material_type: Optional[MaterialType] = None,
-        supplier: Optional[str] = None,
-        search: Optional[str] = None,
-        role: Optional[str] = Query(None, description="User role for filtering")
+    db: AsyncSession = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    status: Optional[MaterialStatus] = None,
+    material_type: Optional[MaterialType] = None,
+    supplier: Optional[str] = None,
+    search: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Получение списка материалов с фильтрацией
-    """
-    query = select(Material)
 
-    # Применяем фильтры
-    filters = []
-    if status:
-        filters.append(Material.status == status)
-    if material_type:
-        filters.append(Material.material_type == material_type)
-    if supplier:
-        filters.append(Material.supplier.ilike(f"%{supplier}%"))
-    if search:
-        filters.append(
-            or_(
-                Material.material_code.ilike(f"%{search}%"),
-                Material.name.ilike(f"%{search}%"),
-                Material.grade.ilike(f"%{search}%")
-            )
+    - **skip**: количество записей для пропуска
+    - **limit**: максимальное количество записей
+    - **status**: фильтр по статусу
+    - **material_type**: фильтр по типу материала
+    - **supplier**: фильтр по поставщику
+    - **search**: поиск по коду, названию или марке
+    """
+    service = MaterialService(db)
+    result = await service.get_materials(
+        skip=skip,
+        limit=limit,
+        status=status,
+        material_type=material_type,
+        supplier=supplier,
+        search=search,
+        user_role=current_user.role if current_user else None
+    )
+    return result
+
+
+@router.post("/", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
+async def create_material(
+    material_data: MaterialCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Создание нового материала
+
+    Доступно только для ролей: WAREHOUSE_KEEPER, ADMINISTRATOR
+    """
+    # Проверка прав доступа
+    if current_user.role not in [UserRole.WAREHOUSE_KEEPER, UserRole.ADMINISTRATOR]:
+        raise PermissionDeniedException(
+            "Only warehouse keepers and administrators can create materials"
         )
 
-    # Фильтрация по роли
-    if role:
-        role_filters = {
-            "warehouse_keeper": [MaterialStatus.RECEIVED, MaterialStatus.QUARANTINE],
-            "quality_control": [MaterialStatus.RECEIVED, MaterialStatus.QUARANTINE, MaterialStatus.TESTING],
-            "lab_destructive": [MaterialStatus.TESTING],
-            "lab_non_destructive": [MaterialStatus.TESTING],
-            "production": [MaterialStatus.APPROVED, MaterialStatus.RELEASED],
-        }
-        if role in role_filters:
-            filters.append(Material.status.in_(role_filters[role]))
-
-    if filters:
-        query = query.where(and_(*filters))
-
-    # Сортировка и пагинация
-    query = query.order_by(Material.created_at.desc())
-    query = query.offset(skip).limit(limit)
-
-    result = await db.execute(query)
-    materials = result.scalars().all()
-
-    # Подсчет общего количества
-    count_query = select(func.count()).select_from(Material)
-    if filters:
-        count_query = count_query.where(and_(*filters))
-    count_result = await db.execute(count_query)
-    total = count_result.scalar()
-
-    return MaterialListResponse(
-        items=[MaterialResponse.from_orm(m) for m in materials],
-        total=total,
-        skip=skip,
-        limit=limit
+    service = MaterialService(db)
+    material = await service.create_material(
+        data=material_data,
+        user_id=current_user.id
     )
+    return material
 
 
 @router.get("/{material_id}", response_model=MaterialResponse)
 async def get_material(
-        material_id: UUID,
-        db: AsyncSession = Depends(get_db)
+    material_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Получение информации о конкретном материале
+    Получение материала по ID
     """
-    query = select(Material).where(Material.id == material_id)
-    result = await db.execute(query)
-    material = result.scalar_one_or_none()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Получаем информацию о workflow
-    engine = workflow_orchestrator.get_engine(str(material_id))
-    workflow_info = engine.get_state_info() if engine else None
-
-    response = MaterialResponse.from_orm(material)
-    if workflow_info:
-        response.workflow_info = workflow_info
-
-    return response
+    service = MaterialService(db)
+    material = await service.get_material(material_id)
+    return material
 
 
-@router.post("/", response_model=MaterialResponse)
-async def create_material(
-        material_data: MaterialCreate,
-        db: AsyncSession = Depends(get_db),
-        user_id: Optional[UUID] = None  # В production это будет из JWT токена
-):
-    """
-    Создание нового материала (приёмка)
-    """
-    # Проверяем уникальность кода материала
-    existing_query = select(Material).where(Material.material_code == material_data.material_code)
-    existing = await db.execute(existing_query)
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Material code already exists")
-
-    # Создаем материал
-    material = Material(
-        **material_data.dict(),
-        received_by=user_id,
-        status=MaterialStatus.RECEIVED
-    )
-
-    db.add(material)
-    await db.commit()
-    await db.refresh(material)
-
-    # Регистрируем в workflow
-    workflow_orchestrator.register_material(material)
-
-    return MaterialResponse.from_orm(material)
-
-
-@router.patch("/{material_id}", response_model=MaterialResponse)
+@router.put("/{material_id}", response_model=MaterialResponse)
 async def update_material(
-        material_id: UUID,
-        material_update: MaterialUpdate,
-        db: AsyncSession = Depends(get_db)
+    material_id: UUID,
+    material_data: MaterialUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Обновление информации о материале
+    Обновление данных материала
+
+    Доступно для: WAREHOUSE_KEEPER, QUALITY_CONTROL, ADMINISTRATOR
     """
-    query = select(Material).where(Material.id == material_id)
-    result = await db.execute(query)
-    material = result.scalar_one_or_none()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Обновляем поля
-    update_data = material_update.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(material, field, value)
-
-    material.updated_at = datetime.utcnow()
-
-    await db.commit()
-    await db.refresh(material)
-
-    return MaterialResponse.from_orm(material)
-
-
-@router.post("/{material_id}/transition")
-async def transition_material(
-        material_id: UUID,
-        transition: str = Body(..., description="Transition trigger name"),
-        notes: Optional[str] = Body(None),
-        user_id: Optional[UUID] = Body(None),
-        db: AsyncSession = Depends(get_db)
-):
-    """
-    Изменение состояния материала в workflow
-    """
-    # Получаем материал
-    query = select(Material).where(Material.id == material_id)
-    result = await db.execute(query)
-    material = result.scalar_one_or_none()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Получаем движок workflow
-    engine = workflow_orchestrator.get_engine(str(material_id))
-    if not engine:
-        engine = workflow_orchestrator.register_material(material)
-
-    # Проверяем доступность перехода
-    available_transitions = engine.get_available_transitions()
-    if transition not in available_transitions:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Transition '{transition}' not available. Available: {available_transitions}"
+    # Проверка прав доступа
+    allowed_roles = [
+        UserRole.WAREHOUSE_KEEPER,
+        UserRole.QUALITY_CONTROL,
+        UserRole.ADMINISTRATOR
+    ]
+    if current_user.role not in allowed_roles:
+        raise PermissionDeniedException(
+            "You don't have permission to update materials"
         )
 
-    # Выполняем переход
-    try:
-        trigger = getattr(engine, transition)
-        success = trigger(user_id=user_id, notes=notes)
-
-        if success:
-            # Обновляем статус в БД
-            material.status = MaterialStatus(engine.state)
-            await db.commit()
-
-            return {
-                "success": True,
-                "new_state": engine.state,
-                "available_transitions": engine.get_available_transitions()
-            }
-        else:
-            return {
-                "success": False,
-                "message": "Transition conditions not met",
-                "current_state": engine.state
-            }
-
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    service = MaterialService(db)
+    material = await service.update_material(
+        material_id=material_id,
+        data=material_data,
+        user_id=current_user.id
+    )
+    return material
 
 
-@router.get("/{material_id}/workflow")
-async def get_material_workflow(
-        material_id: UUID,
-        db: AsyncSession = Depends(get_db)
+@router.post("/{material_id}/status", response_model=MaterialResponse)
+async def change_material_status(
+    material_id: UUID,
+    status_change: MaterialStatusChange,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Получение информации о текущем состоянии workflow материала
+    Изменение статуса материала
+
+    Переходы статусов контролируются в зависимости от роли пользователя
     """
-    # Проверяем существование материала
-    query = select(Material).where(Material.id == material_id)
-    result = await db.execute(query)
-    material = result.scalar_one_or_none()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Получаем движок workflow
-    engine = workflow_orchestrator.get_engine(str(material_id))
-    if not engine:
-        engine = workflow_orchestrator.register_material(material)
-
-    return engine.get_state_info()
+    service = MaterialService(db)
+    material = await service.change_material_status(
+        material_id=material_id,
+        new_status=status_change.new_status,
+        user_id=current_user.id,
+        user_role=current_user.role,
+        notes=status_change.notes
+    )
+    return material
 
 
-@router.delete("/{material_id}")
+@router.post("/{material_id}/location", response_model=MaterialResponse)
+async def assign_location(
+    material_id: UUID,
+    location: str = Body(..., embed=True),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Назначение местоположения материала
+
+    Доступно для: WAREHOUSE_KEEPER, ADMINISTRATOR
+    """
+    if current_user.role not in [UserRole.WAREHOUSE_KEEPER, UserRole.ADMINISTRATOR]:
+        raise PermissionDeniedException(
+            "Only warehouse keepers can assign locations"
+        )
+
+    service = MaterialService(db)
+    material = await service.assign_to_location(
+        material_id=material_id,
+        location=location,
+        user_id=current_user.id
+    )
+    return material
+
+
+@router.post("/{material_id}/reserve", response_model=MaterialResponse)
+async def reserve_material(
+    material_id: UUID,
+    quantity: float = Body(..., gt=0),
+    purpose: str = Body(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Резервирование материала для производства
+
+    Доступно для: PRODUCTION, ADMINISTRATOR
+    """
+    if current_user.role not in [UserRole.PRODUCTION, UserRole.ADMINISTRATOR]:
+        raise PermissionDeniedException(
+            "Only production staff can reserve materials"
+        )
+
+    service = MaterialService(db)
+    material = await service.reserve_material(
+        material_id=material_id,
+        quantity=quantity,
+        user_id=current_user.id,
+        purpose=purpose
+    )
+    return material
+
+
+@router.get("/{material_id}/history")
+async def get_material_history(
+    material_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Получение истории изменений материала
+    """
+    service = MaterialService(db)
+    history = await service.get_material_history(material_id)
+    return history
+
+
+@router.delete("/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_material(
-        material_id: UUID,
-        db: AsyncSession = Depends(get_db)
+    material_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
-    Удаление материала (только для администратора)
+    Удаление материала
+
+    Доступно только для: ADMINISTRATOR
     """
-    query = select(Material).where(Material.id == material_id)
-    result = await db.execute(query)
-    material = result.scalar_one_or_none()
-
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
-
-    # Проверяем, можно ли удалить
-    if material.status not in [MaterialStatus.REJECTED, MaterialStatus.RECEIVED]:
-        raise HTTPException(
-            status_code=400,
-            detail="Can only delete materials in RECEIVED or REJECTED status"
-        )
-
-    await db.delete(material)
-    await db.commit()
-
-    return {"success": True, "message": "Material deleted"}
+    service = MaterialService(db)
+    await service.delete_material(
+        material_id=material_id,
+        user_id=current_user.id,
+        user_role=current_user.role
+    )
+    return None
 
 
-# Дополнительный импорт для подсчета
-from sqlalchemy import func
+@router.get("/availability/check")
+async def check_availability(
+    material_code: Optional[str] = None,
+    grade: Optional[str] = None,
+    min_quantity: Optional[float] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Проверка наличия материалов на складе
+    """
+    service = MaterialService(db)
+    materials = await service.check_availability(
+        material_code=material_code,
+        grade=grade,
+        min_quantity=min_quantity
+    )
+    return materials
+
+
+# Импорт исключений
+from src.core.exceptions import PermissionDeniedException
