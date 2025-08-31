@@ -1,5 +1,12 @@
 <template>
-  <Dialog :visible="props.visible" @update:visible="emit('update:visible', $event)" modal header="Добавление результатов испытания" :style="{ width: '900px' }" :draggable="false">
+  <Dialog
+    :visible="props.visible"
+    @update:visible="emit('update:visible', $event)"
+    modal
+    header="Добавление результатов испытания"
+    :style="{ width: '900px' }"
+    :draggable="false"
+  >
     <div v-if="test">
       <!-- Информация об испытании -->
       <div class="test-info">
@@ -15,7 +22,7 @@
             <strong>Метод:</strong> {{ getTestMethodLabel(test.test_method) }}
           </div>
           <div class="col-6">
-            <strong>Статус:</strong> 
+            <strong>Статус:</strong>
             <Tag :value="test.status" :severity="getStatusSeverity(test.status)" />
           </div>
         </div>
@@ -64,19 +71,7 @@
                   id="elongation"
                   v-model="results.elongation"
                   :minFractionDigits="1"
-                  :maxFractionDigits="2"
-                />
-              </div>
-            </div>
-
-            <div class="col-4">
-              <div class="field">
-                <label for="reductionOfArea">Относительное сужение, %</label>
-                <InputNumber
-                  id="reductionOfArea"
-                  v-model="results.reduction_of_area"
-                  :minFractionDigits="1"
-                  :maxFractionDigits="2"
+                  :maxFractionDigits="1"
                 />
               </div>
             </div>
@@ -88,18 +83,18 @@
                   id="hardness"
                   v-model="results.hardness"
                   :minFractionDigits="0"
-                  :maxFractionDigits="1"
+                  :maxFractionDigits="0"
                 />
               </div>
             </div>
 
             <div class="col-4">
               <div class="field">
-                <label for="impactEnergy">Ударная вязкость, Дж</label>
+                <label for="impactStrength">Ударная вязкость, Дж/см²</label>
                 <InputNumber
-                  id="impactEnergy"
-                  v-model="results.impact_energy"
-                  :minFractionDigits="0"
+                  id="impactStrength"
+                  v-model="results.impact_strength"
+                  :minFractionDigits="1"
                   :maxFractionDigits="1"
                 />
               </div>
@@ -111,123 +106,267 @@
             <div class="col-12">
               <h4>Химический состав, %</h4>
             </div>
-            
-            <div class="col-3" v-for="element in chemicalElements" :key="element.symbol">
+            <div class="col-3">
               <div class="field">
-                <label :for="element.symbol">{{ element.name }} ({{ element.symbol }})</label>
+                <label for="carbon">Углерод (C)</label>
                 <InputNumber
-                  :id="element.symbol"
-                  v-model="results.chemical_composition[element.symbol]"
-                  :minFractionDigits="2"
-                  :maxFractionDigits="4"
-                  :min="0"
-                  :max="100"
+                  id="carbon"
+                  v-model="results.chemical_composition.C"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="silicon">Кремний (Si)</label>
+                <InputNumber
+                  id="silicon"
+                  v-model="results.chemical_composition.Si"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="manganese">Марганец (Mn)</label>
+                <InputNumber
+                  id="manganese"
+                  v-model="results.chemical_composition.Mn"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="phosphorus">Фосфор (P)</label>
+                <InputNumber
+                  id="phosphorus"
+                  v-model="results.chemical_composition.P"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="sulfur">Сера (S)</label>
+                <InputNumber
+                  id="sulfur"
+                  v-model="results.chemical_composition.S"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="chromium">Хром (Cr)</label>
+                <InputNumber
+                  id="chromium"
+                  v-model="results.chemical_composition.Cr"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="nickel">Никель (Ni)</label>
+                <InputNumber
+                  id="nickel"
+                  v-model="results.chemical_composition.Ni"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
+                />
+              </div>
+            </div>
+            <div class="col-3">
+              <div class="field">
+                <label for="copper">Медь (Cu)</label>
+                <InputNumber
+                  id="copper"
+                  v-model="results.chemical_composition.Cu"
+                  :minFractionDigits="3"
+                  :maxFractionDigits="3"
                 />
               </div>
             </div>
           </template>
 
-          <!-- Неразрушающий контроль -->
-          <template v-if="test.test_type === 'non_destructive'">
+          <!-- Визуальный контроль -->
+          <template v-if="test.test_type === 'visual'">
             <div class="col-6">
               <div class="field">
-                <label for="defectsFound">Дефекты обнаружены</label>
-                <div class="flex align-items-center gap-2 mt-2">
-                  <RadioButton 
-                    id="defects_yes" 
-                    name="defectsFound" 
-                    value="true" 
-                    v-model="results.defects_found" 
-                  />
-                  <label for="defects_yes">Да</label>
-                  <RadioButton 
-                    id="defects_no" 
-                    name="defectsFound" 
-                    value="false" 
-                    v-model="results.defects_found" 
-                  />
-                  <label for="defects_no">Нет</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-6" v-if="results.defects_found === 'true'">
-              <div class="field">
-                <label for="defectCount">Количество дефектов</label>
-                <InputNumber
-                  id="defectCount"
-                  v-model="results.defect_count"
-                  :min="0"
+                <label for="surface_quality">Качество поверхности</label>
+                <Dropdown
+                  id="surface_quality"
+                  v-model="results.surface_quality"
+                  :options="surfaceQualityOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Выберите"
                 />
               </div>
             </div>
 
-            <div class="col-12" v-if="results.defects_found === 'true'">
+            <div class="col-6">
               <div class="field">
-                <label for="defectDescription">Описание дефектов</label>
+                <label for="defects_found">Обнаружены дефекты</label>
+                <SelectButton
+                  v-model="results.defects_found"
+                  :options="[
+                    { label: 'Да', value: 'true' },
+                    { label: 'Нет', value: 'false' }
+                  ]"
+                  optionLabel="label"
+                  optionValue="value"
+                />
+              </div>
+            </div>
+
+            <div v-if="results.defects_found === 'true'" class="col-12">
+              <div class="field">
+                <label for="defect_description">Описание дефектов</label>
                 <Textarea
-                  id="defectDescription"
+                  id="defect_description"
                   v-model="results.defect_description"
                   rows="3"
-                  placeholder="Опишите обнаруженные дефекты"
+                  :class="{ 'p-invalid': errors.defect_description }"
+                />
+                <small v-if="errors.defect_description" class="p-error">
+                  {{ errors.defect_description }}
+                </small>
+              </div>
+            </div>
+
+            <div v-if="results.defects_found === 'true'" class="col-6">
+              <div class="field">
+                <label for="defect_type">Тип дефекта</label>
+                <MultiSelect
+                  id="defect_type"
+                  v-model="results.defect_types"
+                  :options="defectTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Выберите типы дефектов"
+                />
+              </div>
+            </div>
+
+            <div v-if="results.defects_found === 'true'" class="col-6">
+              <div class="field">
+                <label for="defect_count">Количество дефектов</label>
+                <InputNumber
+                  id="defect_count"
+                  v-model="results.defect_count"
+                  :min="1"
                 />
               </div>
             </div>
           </template>
 
-          <!-- Общие поля -->
+          <!-- Геометрические измерения -->
+          <template v-if="test.test_type === 'dimensional'">
+            <div class="col-4">
+              <div class="field">
+                <label for="thickness">Толщина, мм <span class="required"></span></label>
+                <InputNumber
+                  id="thickness"
+                  v-model="results.thickness"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                  :class="{ 'p-invalid': errors.thickness }"
+                />
+                <small v-if="errors.thickness" class="p-error">{{ errors.thickness }}</small>
+              </div>
+            </div>
+
+            <div class="col-4">
+              <div class="field">
+                <label for="width">Ширина, мм</label>
+                <InputNumber
+                  id="width"
+                  v-model="results.width"
+                  :minFractionDigits="1"
+                  :maxFractionDigits="1"
+                />
+              </div>
+            </div>
+
+            <div class="col-4">
+              <div class="field">
+                <label for="length">Длина, мм</label>
+                <InputNumber
+                  id="length"
+                  v-model="results.length"
+                  :minFractionDigits="1"
+                  :maxFractionDigits="1"
+                />
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="field">
+                <label for="flatness">Плоскостность, мм</label>
+                <InputNumber
+                  id="flatness"
+                  v-model="results.flatness"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                />
+              </div>
+            </div>
+
+            <div class="col-6">
+              <div class="field">
+                <label for="roughness">Шероховатость, Ra</label>
+                <InputNumber
+                  id="roughness"
+                  v-model="results.roughness"
+                  :minFractionDigits="2"
+                  :maxFractionDigits="2"
+                />
+              </div>
+            </div>
+          </template>
+
+          <!-- Общие поля для всех типов испытаний -->
           <div class="col-12">
+            <Divider />
             <h3>Заключение</h3>
           </div>
 
           <div class="col-6">
             <div class="field">
-              <label for="conclusion" class="required">Заключение</label>
-              <Dropdown
-                id="conclusion"
-                v-model="results.conclusion"
-                :options="conclusions"
+              <label for="test_result">Результат испытания <span class="required"></span></label>
+              <SelectButton
+                v-model="results.pass_fail"
+                :options="[
+                  { label: 'Соответствует', value: 'PASS', severity: 'success' },
+                  { label: 'Не соответствует', value: 'FAIL', severity: 'danger' }
+                ]"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Выберите заключение"
-                :class="{ 'p-invalid': errors.conclusion }"
-                required
+                :class="{ 'p-invalid': errors.pass_fail }"
               />
-              <small class="p-error" v-if="errors.conclusion">{{ errors.conclusion }}</small>
+              <small v-if="errors.pass_fail" class="p-error">{{ errors.pass_fail }}</small>
             </div>
           </div>
 
           <div class="col-6">
             <div class="field">
-              <label for="testDate">Дата проведения испытания</label>
+              <label for="test_date">Дата испытания <span class="required"></span></label>
               <Calendar
-                id="testDate"
+                id="test_date"
                 v-model="results.test_date"
                 dateFormat="dd.mm.yy"
-                placeholder="Выберите дату"
+                showIcon
+                :class="{ 'p-invalid': errors.test_date }"
               />
-            </div>
-          </div>
-
-          <div class="col-6">
-            <div class="field">
-              <label for="operator">Испытал</label>
-              <InputText
-                id="operator"
-                v-model="results.operator"
-                placeholder="ФИО оператора"
-              />
-            </div>
-          </div>
-
-          <div class="col-6">
-            <div class="field">
-              <label for="equipment">Оборудование</label>
-              <InputText
-                id="equipment"
-                v-model="results.equipment"
-                placeholder="Использованное оборудование"
-              />
+              <small v-if="errors.test_date" class="p-error">{{ errors.test_date }}</small>
             </div>
           </div>
 
@@ -238,82 +377,64 @@
                 id="notes"
                 v-model="results.notes"
                 rows="3"
-                placeholder="Дополнительные замечания"
+                placeholder="Дополнительные комментарии к результатам испытания"
               />
             </div>
           </div>
 
-          <!-- Загрузка фотографий -->
           <div class="col-12">
-            <h3>Фотографии и документы</h3>
+            <div class="field">
+              <label for="attachments">Приложения</label>
+              <FileUpload
+                ref="fileUpload"
+                name="attachments"
+                :multiple="true"
+                accept="image/*,application/pdf"
+                :maxFileSize="10000000"
+                @upload="onUpload"
+                @error="onUploadError"
+                :auto="false"
+                chooseLabel="Выбрать файлы"
+                uploadLabel="Загрузить"
+                cancelLabel="Отмена"
+              >
+                <template #empty>
+                  <p>Перетащите файлы сюда или нажмите для выбора</p>
+                </template>
+              </FileUpload>
+            </div>
           </div>
+        </div>
 
-          <div class="col-12">
-            <FileUpload
-              name="files"
-              :multiple="true"
-              accept="image/*,.pdf"
-              :maxFileSize="5000000"
-              @upload="onFilesUpload"
-              @error="onUploadError"
-              :auto="false"
-              chooseLabel="Выбрать файлы"
-              uploadLabel="Загрузить"
-              cancelLabel="Отмена"
-            >
-              <template #content="{ files, uploadedFiles, removeUploadedFileCallback, removeFileCallback }">
-                <div v-if="files.length > 0">
-                  <div class="flex flex-wrap gap-2">
-                    <div v-for="(file, index) in files" :key="file.name + file.type + file.size" class="card m-0 px-2 py-1">
-                      <span class="text-sm">{{ file.name }}</span>
-                      <Button 
-                        icon="pi pi-times" 
-                        @click="removeFileCallback(index)" 
-                        severity="danger"
-                        text
-                        rounded
-                        size="small"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </FileUpload>
-          </div>
+        <!-- Кнопки действий -->
+        <div class="flex justify-content-end gap-2 mt-4">
+          <Button
+            label="Отмена"
+            severity="secondary"
+            @click="handleCancel"
+            :disabled="loading"
+          />
+          <Button
+            label="Сохранить результаты"
+            icon="pi pi-check"
+            @click="handleSubmit"
+            :loading="loading"
+          />
         </div>
       </form>
     </div>
 
-    <template #footer>
-      <Button 
-        label="Отмена" 
-        severity="secondary" 
-        @click="handleCancel"
-        :disabled="loading"
-      />
-      <Button 
-        label="Сохранить результаты" 
-        @click="handleSubmit"
-        :loading="loading"
-      />
-    </template>
+    <div v-else class="p-4">
+      <Message severity="warn" :closable="false">
+        Испытание не выбрано
+      </Message>
+    </div>
   </Dialog>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import Dialog from 'primevue/dialog'
-import Button from 'primevue/button'
-import Dropdown from 'primevue/dropdown'
-import InputNumber from 'primevue/inputnumber'
-import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
-import Calendar from 'primevue/calendar'
-import RadioButton from 'primevue/radiobutton'
-import FileUpload from 'primevue/fileupload'
-import Tag from 'primevue/tag'
-import Divider from 'primevue/divider'
 import { testService } from '@/services/testService'
 
 const props = defineProps({
@@ -331,122 +452,138 @@ const emit = defineEmits(['update:visible', 'saved', 'cancel'])
 
 const toast = useToast()
 const loading = ref(false)
-const errors = ref({})
+const fileUpload = ref(null)
 
-// Результаты испытания
+// Форма результатов
 const results = reactive({
-  // Механические свойства
+  // Механические испытания
   tensile_strength: null,
   yield_strength: null,
   elongation: null,
-  reduction_of_area: null,
   hardness: null,
-  impact_energy: null,
-  
+  impact_strength: null,
+
   // Химический состав
-  chemical_composition: {},
-  
-  // НК
+  chemical_composition: {
+    C: null,
+    Si: null,
+    Mn: null,
+    P: null,
+    S: null,
+    Cr: null,
+    Ni: null,
+    Cu: null
+  },
+
+  // Визуальный контроль
+  surface_quality: null,
   defects_found: 'false',
-  defect_count: 0,
   defect_description: '',
-  
+  defect_types: [],
+  defect_count: 0,
+
+  // Геометрические измерения
+  thickness: null,
+  width: null,
+  length: null,
+  flatness: null,
+  roughness: null,
+
   // Общие поля
-  conclusion: null,
+  pass_fail: null,
   test_date: new Date(),
-  operator: '',
-  equipment: '',
   notes: '',
-  
-  // Файлы
   attachments: []
 })
 
-// Заключения
-const conclusions = [
-  { label: 'Годен', value: 'accepted' },
-  { label: 'Годен с ограничениями', value: 'accepted_with_limitations' },
-  { label: 'Не годен', value: 'rejected' },
-  { label: 'Требует дополнительных исследований', value: 'needs_additional_testing' }
+// Ошибки валидации
+const errors = ref({})
+
+// Опции для селектов
+const surfaceQualityOptions = [
+  { label: 'Отличное', value: 'excellent' },
+  { label: 'Хорошее', value: 'good' },
+  { label: 'Удовлетворительное', value: 'satisfactory' },
+  { label: 'Неудовлетворительное', value: 'unsatisfactory' }
 ]
 
-// Химические элементы
-const chemicalElements = [
-  { symbol: 'C', name: 'Углерод' },
-  { symbol: 'Si', name: 'Кремний' },
-  { symbol: 'Mn', name: 'Марганец' },
-  { symbol: 'P', name: 'Фосфор' },
-  { symbol: 'S', name: 'Сера' },
-  { symbol: 'Cr', name: 'Хром' },
-  { symbol: 'Ni', name: 'Никель' },
-  { symbol: 'Mo', name: 'Молибден' },
-  { symbol: 'V', name: 'Ванадий' },
-  { symbol: 'Ti', name: 'Титан' },
-  { symbol: 'Al', name: 'Алюминий' },
-  { symbol: 'Cu', name: 'Медь' }
+const defectTypeOptions = [
+  { label: 'Царапины', value: 'scratches' },
+  { label: 'Вмятины', value: 'dents' },
+  { label: 'Коррозия', value: 'corrosion' },
+  { label: 'Трещины', value: 'cracks' },
+  { label: 'Раковины', value: 'cavities' },
+  { label: 'Включения', value: 'inclusions' },
+  { label: 'Расслоение', value: 'delamination' },
+  { label: 'Прочие', value: 'other' }
 ]
 
-// Инициализация химического состава
-onMounted(() => {
-  chemicalElements.forEach(element => {
-    results.chemical_composition[element.symbol] = null
-  })
-})
-
-// Получение названия типа испытания
+// Вспомогательные функции
 const getTestTypeLabel = (type) => {
-  const types = {
-    'mechanical': 'Механические испытания',
-    'chemical': 'Химический анализ',
-    'non_destructive': 'Неразрушающий контроль',
-    'metallographic': 'Металлографические исследования',
-    'corrosion': 'Коррозионная стойкость'
+  const labels = {
+    mechanical: 'Механические испытания',
+    chemical: 'Химический анализ',
+    visual: 'Визуальный контроль',
+    dimensional: 'Геометрические измерения',
+    metallography: 'Металлография'
   }
-  return types[type] || type
+  return labels[type] || type
 }
 
-// Получение названия метода испытания
 const getTestMethodLabel = (method) => {
-  const methods = {
-    'tensile': 'Растяжение',
-    'bend': 'Изгиб',
-    'impact': 'Удар',
-    'hardness': 'Твердость',
-    'spectral': 'Спектральный анализ',
-    'wet_chemistry': 'Химический анализ',
-    'xrf': 'Рентгенофлуоресцентный',
-    'ultrasonic': 'УЗК',
-    'magnetic_particle': 'МПК',
-    'visual': 'ВИК',
-    'radiographic': 'Рентгеновский'
+  const labels = {
+    tensile: 'Растяжение',
+    hardness: 'Твердость',
+    impact: 'Ударная вязкость',
+    spectral: 'Спектральный анализ',
+    visual: 'Визуальный осмотр',
+    measuring: 'Измерение'
   }
-  return methods[method] || method
+  return labels[method] || method
 }
 
-// Получение цвета для статуса
 const getStatusSeverity = (status) => {
   const severities = {
-    'planned': 'info',
-    'in_progress': 'warning',
-    'completed': 'success',
-    'cancelled': 'danger'
+    pending: 'warning',
+    in_progress: 'info',
+    completed: 'success',
+    failed: 'danger'
   }
-  return severities[status] || 'info'
+  return severities[status] || 'secondary'
 }
 
 // Валидация формы
 const validateForm = () => {
   errors.value = {}
+  let isValid = true
 
-  if (!results.conclusion) {
-    errors.value.conclusion = 'Выберите заключение'
+  // Обязательные поля
+  if (!results.pass_fail) {
+    errors.value.pass_fail = 'Необходимо указать результат испытания'
+    isValid = false
   }
 
-  return Object.keys(errors.value).length === 0
+  if (!results.test_date) {
+    errors.value.test_date = 'Необходимо указать дату испытания'
+    isValid = false
+  }
+
+  // Валидация по типу испытания
+  if (props.test?.test_type === 'dimensional' && !results.thickness) {
+    errors.value.thickness = 'Толщина обязательна для измерения'
+    isValid = false
+  }
+
+  if (props.test?.test_type === 'visual' && results.defects_found === 'true' && !results.defect_description) {
+    errors.value.defect_description = 'Необходимо описать обнаруженные дефекты'
+    isValid = false
+  }
+
+  return isValid
 }
 
-// Загрузка файлов
-const onFilesUpload = (event) => {
+// Обработка загрузки файлов
+const onUpload = (event) => {
   results.attachments = [...results.attachments, ...event.files]
   toast.add({
     severity: 'success',

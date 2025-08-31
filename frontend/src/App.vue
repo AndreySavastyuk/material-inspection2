@@ -93,9 +93,6 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useMaterialStore } from '@/stores/material'
 
-import Dropdown from 'primevue/dropdown'
-import Card from 'primevue/card'
-import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 const router = useRouter()

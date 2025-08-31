@@ -1,45 +1,31 @@
 {
-  "name": "metal-inspection-frontend",
-  "version": "1.0.0",
-  "description": "Система приемки и входного контроля металла - Frontend",
+  "name": "material-inspection-frontend",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --open",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "coverage": "vitest run --coverage"
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@primevue/themes": "^4.3.7",
-    "@vueuse/core": "^10.11.0",
-    "axios": "^1.11.0",
-    "chart.js": "^4.5.0",
-    "date-fns": "^3.6.0",
-    "lodash": "^4.17.21",
-    "pinia": "^3.0.3",
+    "@vueuse/core": "^10.9.0",
+    "axios": "^1.6.8",
+    "chart.js": "^4.4.0",
+    "pinia": "^2.1.7",
     "primeicons": "^7.0.0",
-    "primevue": "^4.3.7",
+    "primevue": "^3.53.0",
     "qrcode": "^1.5.4",
-    "vue": "^3.5.18",
-    "vue-chartjs": "^5.3.2",
-    "vue-router": "^4.5.1"
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.1",
-    "@vitest/ui": "^2.1.6",
-    "@vue/eslint-config-prettier": "^10.2.0",
-    "@vue/test-utils": "^2.4.6",
-    "eslint": "^9.33.0",
-    "eslint-plugin-vue": "^10.4.0",
-    "jsdom": "^25.0.1",
-    "sass": "^1.90.0",
-    "terser": "^5.43.1",
-    "vite": "^7.1.2",
-    "vitest": "^2.1.6"
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/test-utils": "^2.4.5",
+    "jsdom": "^24.0.0",
+    "vite": "^5.2.0",
+    "vitest": "^1.4.0"
   }
 }
