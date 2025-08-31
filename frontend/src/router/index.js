@@ -1,20 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// Views
-import HomeView from '@/views/HomeView.vue'
-import MaterialsView from '@/views/MaterialsView.vue'
-import MaterialReceivingForm from '@/components/MaterialReceivingForm.vue'
-
 const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: () => import('@/views/HomeView.vue')
   },
   {
     path: '/materials',
     name: 'materials',
-    component: MaterialsView
+    component: () => import('@/views/MaterialsView.vue')
   },
   {
     path: '/receiving',
@@ -76,11 +71,11 @@ const routes = [
     name: 'settings',
     component: () => import('@/views/SettingsView.vue')
   },
-    {
-      path: '/materials/new',
-      name: 'material-new',
-      component: MaterialReceivingForm
-    }
+  {
+    path: '/materials/new',
+    name: 'material-new',
+    component: () => import('@/components/MaterialReceivingForm.vue')
+  }
     ]
 
 const router = createRouter({

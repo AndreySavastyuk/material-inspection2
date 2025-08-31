@@ -36,6 +36,9 @@ import Chart from 'primevue/chart'
 import App from './App.vue'
 import router from './router'
 
+// Инициализация API interceptors
+import './services/interceptors'
+
 // Стили
 import 'primeicons/primeicons.css'
 import './assets/styles/main.css'

@@ -4,10 +4,13 @@
       "Bash(alembic show:*)",
       "Bash(curl:*)",
       "Bash(python -m pytest tests/ -v)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "additionalDirectories": [
-      "E:\\e\\Projects\\material-inspection2"
+      "E:\\e\\Projects\\material-inspection2",
+      "E:\\mnt\\e\\Projects\\material-inspection2"
     ]
   }
 }

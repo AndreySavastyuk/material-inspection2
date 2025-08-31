@@ -314,5 +314,55 @@ export const testService = {
   async saveProtocolTemplate(testType, template) {
     const response = await api.post(`/tests/protocol-template/${testType}`, template)
     return response.data
+  },
+
+  /**
+   * Добавить результаты к испытанию
+   * @param {string} testId - ID испытания
+   * @param {Object} resultsData - Данные результатов
+   * @returns {Promise} - Результаты испытания
+   */
+  async addResults(testId, resultsData) {
+    const response = await api.post(`/tests/${testId}/results`, resultsData)
+    return response.data
+  },
+
+  /**
+   * Обновить статус испытания
+   * @param {string} id - ID испытания
+   * @param {string} status - Новый статус
+   * @param {string} comment - Комментарий к изменению
+   * @returns {Promise} - Обновленное испытание
+   */
+  async updateStatus(id, status, comment = '') {
+    const response = await api.patch(`/tests/${id}/status`, {
+      status,
+      comment
+    })
+    return response.data
+  },
+
+  /**
+   * Получить все планируемые тесты
+   */
+  async getPlanned(params = {}) {
+    const response = await api.get('/tests/planned', { params })
+    return response.data
+  },
+
+  /**
+   * Получить активные тесты
+   */
+  async getActive(params = {}) {
+    const response = await api.get('/tests/active', { params })
+    return response.data
+  },
+
+  /**
+   * Получить завершенные тесты
+   */
+  async getCompleted(params = {}) {
+    const response = await api.get('/tests/completed', { params })
+    return response.data
   }
 }

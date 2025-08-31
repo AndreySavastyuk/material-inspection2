@@ -48,7 +48,7 @@ app.add_middleware(
 
 # Импортируем роутеры после создания app
 from src.api.v1 import materials_simple as materials
-from src.api.v1 import workflows, certificates, users
+from src.api.v1 import workflows, certificates, users, auth
 
 # Подключение роутеров
 app.include_router(
@@ -73,6 +73,12 @@ app.include_router(
     users.router,
     prefix="/api/v1/users",
     tags=["Users"]
+)
+
+app.include_router(
+    auth.router,
+    prefix="/api/v1/auth",
+    tags=["Authentication"]
 )
 
 # Главная страница API
